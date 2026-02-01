@@ -54,7 +54,7 @@ class TraceViewer:
                 st.error(f"No 'traces' variable found. Available: {available_vars}")
                 self.current_data = None
                 
-        except Exception as e:
+        except (FileNotFoundError, OSError, ValueError) as e:
             st.error(f"Error loading file: {e}")
             self.current_data = None
     
@@ -145,17 +145,17 @@ def plot_traces(viewer, selected_traces, smoothen, smooth_window_ms, polyorder, 
                 
                 if smoothen:
                     trace_data = smoothen_trace(trace_data, smooth_window_ms, polyorder, sampling_rate=sampling_rate_recording)
-                    baseline = np.median(trace_data[trace_data <= np.percentile(trace_data, 10)])
-                    spike_threshold = 20.0
-                    spike_indices = np.where(trace_data > baseline + spike_threshold)[0]
-                    if spike_indices.size != 0:
-                        start = spike_indices[0]
+                    #baseline = np.median(trace_data[trace_data <= np.percentile(trace_data, 10)])
+                    #spike_threshold = 20.0
+                    #spike_indices = np.where(trace_data > baseline + spike_threshold)[0]
+                    #if spike_indices.size != 0:
+                        #start = spike_indices[0]
                     
                         # take the trace - 15 ms before the spike start and + 30 ms after spike start
-                        trace_mask = (np.arange(len(trace_data)) <= start - int(0.015 * sampling_rate_recording)) | (np.arange(len(trace_data)) >= start + int(0.030 * sampling_rate_recording))
+                        #trace_mask = (np.arange(len(trace_data)) <= start - int(0.015 * sampling_rate_recording)) | (np.arange(len(trace_data)) >= start + int(0.030 * sampling_rate_recording))
                         # get the mean of the trace excluding the spike region
-                        start_time = (start - int(0.015 * sampling_rate_recording)) * 1000 / (sampling_rate_recording)
-                        end_time = (start + int(0.030 * sampling_rate_recording)) * 1000 / (sampling_rate_recording)
+                        #start_time = (start - int(0.015 * sampling_rate_recording)) * 1000 / (sampling_rate_recording)
+                        #end_time = (start + int(0.030 * sampling_rate_recording)) * 1000 / (sampling_rate_recording)
                         #st.text(f'{start_time}, {end_time}')
                         #st.text(f'Trace statistics after removing spike region for trace {idx + 1}:')
                         #st.text(f'{trace_data[trace_mask].mean(), trace_data[trace_mask].std()}')
@@ -235,7 +235,7 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
     max_event_height = 25.0 # mV
     window_size_ms = 50.0
     step_size_ms = 10.0
-    time_window_ms = 5.0
+    #time_window_ms = 5.0
     time_window_grouping_ms = 5.0
     shift_from_peak_for_recalculating_baseline_ms = 0.0
     width_window_for_recalculating_baseline_ms = 10.0
@@ -278,13 +278,13 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
                 local_baseline = window_baseline * 0.7 + baseline * 0.3
 
                 local_threshold = local_baseline + min_event_height
-                
+
                 peak_indices, _ = signal.find_peaks(
                     window_data,
                     height=local_threshold,
                     prominence=1.0
                 )
-                 
+
                 for peak_idx in peak_indices:
                     global_peak_idx = peak_idx + start_idx
                     if global_peak_idx < len(trace_data):
@@ -398,7 +398,7 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
         filtered_group = filter_group(group)
 
         a = sorted(filtered_group, key=lambda x: x[0])
-
+        
         if filtered_grouped_results.index(group) == len(filtered_grouped_results) - 1:
             st.text(f'{a}')
         else:
@@ -406,16 +406,15 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
 
 def filter_group(group):
     """
-    
+    If multiple events from the same trace are present in a group, keep only the event with the highest peak value.
     """
 
     best_by_index = defaultdict()
-
     for event in group:
         trace_id = event[0]
-        peak_value = event[3]
+        peak_value = event[4]
 
-        if trace_id not in best_by_index or peak_value > best_by_index[trace_id][3]:
+        if trace_id not in best_by_index or peak_value > best_by_index[trace_id][4]:
             best_by_index[trace_id] = event
     
     filtered_group = list(best_by_index.values())
@@ -492,9 +491,9 @@ def group_events_by_time(traces, time_threshold=10.0):
             current_group.append(sub_event)
         else:
             
-            dyn_mean = np.mean([e[1] for e in current_group])
+            dyn_median = np.median([e[1] for e in current_group])
 
-            time_diff = abs(sub_event[1] - dyn_mean)
+            time_diff = abs(sub_event[1] - dyn_median)
             if time_diff <= time_threshold:
                 current_group.append(sub_event)
             else:
