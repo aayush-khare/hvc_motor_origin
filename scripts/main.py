@@ -235,6 +235,7 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
     max_event_height = 20.0 # mV
     window_size_ms = 50.0
     step_size_ms = 10.0
+    putative_spike_threshold = -50.0 # mV
     #time_window_ms = 5.0
     time_window_grouping_ms = 5.0
     shift_from_peak_for_recalculating_baseline_ms = 0.0
@@ -315,7 +316,7 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
                             event_amplitude = trace_data[global_peak_idx] - pre_event_baseline
                             rise_time = (global_peak_idx / sampling_rate_analysis) * 1000 - recalculated_baseline_time
                          
-                            if event_amplitude > min_event_height and event_amplitude < max_event_height:
+                            if event_amplitude > min_event_height and event_amplitude < max_event_height and event_peak_value < putative_spike_threshold:
                                 all_events.append({
                                     'index': global_peak_idx,
                                     'time_ms': (global_peak_idx / sampling_rate_analysis) * 1000,
