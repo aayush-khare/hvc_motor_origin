@@ -232,7 +232,7 @@ def analyze_traces(viewer, file_index, selected_traces, smoothen, smooth_window_
     """
 
     min_event_height = 2.0 # mV
-    max_event_height = 25.0 # mV
+    max_event_height = 20.0 # mV
     window_size_ms = 50.0
     step_size_ms = 10.0
     #time_window_ms = 5.0
